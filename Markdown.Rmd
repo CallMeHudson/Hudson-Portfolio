@@ -1,0 +1,130 @@
+---
+title: "Class Project Markdown"
+output:
+  html_notebook: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+#### This Data Analysis looks at the marrying trends of men and women by major.
+
+```{r}
+library('ggplot2')
+library('gridExtra')
+library('ggrepel')
+library('reshape2')
+library('tidyverse')  # data manipulation
+library('cluster')    # clustering algorithms
+library('factoextra')
+library('ggrepel')
+source("hw2.R")
+marry = read.csv("Finaldata.csv", header = T, sep =",", stringsAsFactors = F, dec=".")
+```
+
+```{r}
+ggplot(marry, aes(x = MenMarDown, y = WomMarDown)) + 
+  geom_point(aes(MenMarDown, WomMarDown, fill = marry$Category, color = marry$Category, shape = marry$Degree), size = 4, stroke = 1.2) +
+  labs(title = "Men Marrying Down vs. Women Marrying Down", x = "Men", y = "Women") +
+  hw2
+```
+
+```{r}
+forbox2 = melt(marry, id.vars = "Degree", measure.vars = c("MenMarDown", "WomMarDown") )
+forbox2 = subset(forbox2, Degree != "Either")
+#Lets make a boxplot to see this
+
+
+ggplot(forbox2, aes(x = variable, y = value, fill = Degree)) + 
+  geom_boxplot( outlier.shape = NA) + 
+  geom_point(aes(fill = variable), size = 2.5, shape = 19, alpha = .8, position = position_jitterdodge(), show.legend = F) +
+  labs(title = "Distributions of Men and Women", x = "Gender", y = "Percent that Married Down") +
+  hw2 + 
+  coord_flip() +
+  scale_fill_manual(name = "Degree", values = c("lightblue","maroon",NA,NA), limits = c("BA","BS")) +
+  scale_x_discrete(labels=c("Men", "Women")) +
+  scale_y_continuous(limits = c(0.15,0.48)) 
+```
+
+```{r}
+
+g = melt(table)
+ggplot(g, aes(Var1, Var2)) + 
+  geom_tile(aes( fill = value ))  +
+  labs(title = "Heatmap of Inter-Major", x = "Women", y = "Men") +
+  scale_fill_gradient2(low = "white", high = "red4", mid = "firebrick1", 
+                       midpoint = 15, limit = c(0,35), 
+                       name="Values") + hw2
+```
+
+```{r}
+table2 = cbind(marry$Category, table)
+colnames(table2)[1] = "Category"
+table2 = data.frame(table2)
+bycat = aggregate(. ~ Category, data  = table2, sum)
+colnames(bycat)[2:27] = marry$Category
+run = t(bycat)
+run = run[-1,]
+run = cbind(marry$Category, run)
+colnames(run) = c("Category","Art","Engineering","Human","Other","Science")
+run = run[,-7]
+#Because there were so many Humanities we arrange the data
+run = data.frame(run)
+run2 = aggregate( . ~ Category, data = try, sum)
+run2 = run2[,-1]
+run2 = cbind(c("Art","Engineering","Human","Other","Science"), run2)
+colnames(run2)[1] = "Category"
+run3 = melt(run2, id.vars = "Category")
+
+
+ggplot(run3, aes(x = Category, y = value)) + 
+  geom_bar(aes(fill = try4$Category), stat = "identity") +
+  labs(title = "Mariages to each Category by Each Category", x = "Category", y = "Marriages") +
+  hw2 + facet_grid(~ variable) +   guides(fill = F, colour = "none") 
+
+```
+
+```{r}
+
+marrydowns = marry[-6]
+marrydowns = marrydowns[-4]
+marrydowns = marrydowns[-1]
+marrydowns = marrydowns[-5:-32]
+marrydowns = marrydowns[-1:-2]
+row.names(marrydowns) = marry$Major
+
+res = hcut(marrydowns[1:2], k = 4, stand = T) 
+fviz_dend(res, rect = F, cex = 0.7, k_colors = c("red","green4", "blue", "brown"), horiz = T) + hw2 + ggtitle("Marrying Down by Major")
+```
+```{r}
+
+fviz_nbclust(marrydowns[1:2], kmeans, method = "silhouette") + ggtitle("Marrying Down by Major") + hw2
+```
+
+```{r}
+big2 = kmeans(marrydowns[1:2], centers = 2, nstart = 25)
+fviz_cluster(big2, data = marrydowns, geom = c("point", "text"), repel = T, ellipse.type = "convex", ellipse.alpha = 0.2) +  ggtitle("k = 2") +
+  hw2
+```
+
+
+```{r}
+
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point(col = "purple4", size = 2.5) +
+    stat_smooth(method = "lm", col = "red4", size = 2) +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)), x = "Men Married Down", y = "Women Married Down")
+}
+linear = lm(marry$WomMarDown~marry$MenMarDown)
+summary(linear)
+ggplotRegression(linear)
+
+```
+
