@@ -1,0 +1,1 @@
+This is a project I created in my Stat 463 class: Introduction to Computer Statistical Packages. The data set contains values on the frequency of graduates of a certain college major marrying other majors.
